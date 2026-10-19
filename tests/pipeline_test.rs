@@ -121,3 +121,55 @@ async fn test_server_healthz_endpoint() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     assert_eq!(&body[..], b"ok");
 }
+
+#[tokio::test]
+async fn test_server_home_page_returns_html_form() {
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let app = server::create_app();
+
+    let response = app
+        .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(response
+        .headers()
+        .get("content-type")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .contains("text/html"));
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let html = String::from_utf8_lossy(&body);
+    assert!(html.contains("<form"), "A página inicial deve conter um formulário");
+    assert!(html.contains("name=\"url\""), "O formulário deve ter um campo de URL");
+    assert!(html.contains("Resenhar"), "O formulário deve ter o botão de ação");
+}
+
+#[test]
+fn test_formatter_renders_sovereign_reading_page() {
+    let extracted = ExtractedArticle {
+        title: "A Soberania da Leitura na Borda Digital".to_string(),
+        source_url: TARGET_URL.to_string(),
+        domain: "banca.2lp.in".to_string(),
+        author: Some("Lumen Pink".to_string()),
+        clipped_at: "2026-10-19T14:45:00Z".to_string(),
+        clean_html: "<p>Parágrafo destilado para leitura agradável.</p>".to_string(),
+    };
+
+    let html = formatter::render_reading_page(&extracted);
+
+    assert!(html.contains("<!DOCTYPE html>"), "Deve ser um documento HTML5 completo");
+    assert!(html.contains("prefers-color-scheme: dark"), "Deve incluir suporte a Dark Mode");
+    assert!(html.contains("A Soberania da Leitura"), "Deve incluir o título do artigo");
+    assert!(html.contains(TARGET_URL), "Deve incluir link para a fonte original");
+    assert!(html.contains("format=md"), "Deve incluir botão para baixar versão Markdown");
+    assert!(html.contains("Parágrafo destilado para leitura agradável."), "Deve incluir o conteúdo");
+}
+
