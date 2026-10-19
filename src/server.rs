@@ -1,13 +1,13 @@
 use axum::{
     extract::Query,
     http::{header, HeaderMap, StatusCode},
-    response::{IntoResponse, Response},
+    response::{Html, IntoResponse, Response},
     routing::get,
     Json, Router,
 };
 use serde::Deserialize;
 
-use crate::{process_url, ResenhaError};
+use crate::{extractor, fetcher, formatter, ResenhaError};
 
 #[derive(Debug, Deserialize)]
 pub struct ResenhaQuery {
@@ -30,17 +30,23 @@ async fn resenha_handler(
     headers: HeaderMap,
     Query(query): Query<ResenhaQuery>,
 ) -> Result<Response, AppError> {
-    let target_url = query.url.ok_or(AppError::BadRequest(
-        "Parâmetro 'url' obrigatório".to_string(),
-    ))?;
+    let target_url = match query.url {
+        Some(ref u) if !u.trim().is_empty() => u.trim(),
+        _ => {
+            // Sem URL fornecida: renderiza a página inicial com o formulário
+            return Ok(Html(formatter::render_home_page()).into_response());
+        }
+    };
 
-    if target_url.trim().is_empty() {
-        return Err(AppError::BadRequest("URL não pode ser vazia".to_string()));
-    }
+    let raw_html = fetcher::fetch_html(target_url)
+        .await
+        .map_err(AppError::Internal)?;
+    let article =
+        extractor::extract_and_sanitize(&raw_html, target_url).map_err(AppError::Internal)?;
 
-    let markdown = process_url(&target_url).await.map_err(AppError::Internal)?;
+    let requested_format = query.format.as_deref().unwrap_or("");
 
-    let wants_json = query.format.as_deref() == Some("json")
+    let wants_json = requested_format == "json"
         || headers
             .get(header::ACCEPT)
             .and_then(|h| h.to_str().ok())
@@ -48,18 +54,42 @@ async fn resenha_handler(
             .unwrap_or(false);
 
     if wants_json {
+        let markdown = formatter::format_markdown(&article).map_err(AppError::Internal)?;
         let json_body = serde_json::json!({
-            "url": target_url,
+            "title": article.title,
+            "source": article.source_url,
+            "domain": article.domain,
+            "author": article.author,
+            "clipped_at": article.clipped_at,
             "markdown": markdown,
+            "clean_html": article.clean_html,
         });
-        Ok(Json(json_body).into_response())
-    } else {
-        Ok((
+        return Ok(Json(json_body).into_response());
+    }
+
+    let wants_markdown = requested_format == "md"
+        || headers
+            .get(header::ACCEPT)
+            .and_then(|h| h.to_str().ok())
+            .map(|a| a.contains("text/markdown") || a.contains("text/x-markdown"))
+            .unwrap_or(false);
+
+    if wants_markdown {
+        let markdown = formatter::format_markdown(&article).map_err(AppError::Internal)?;
+        return Ok((
             [(header::CONTENT_TYPE, "text/markdown; charset=utf-8")],
             markdown,
         )
-            .into_response())
+            .into_response());
     }
+
+    // Padrão de navegação: renderiza a versão de leitura tipográfica soberana
+    let reading_page = formatter::render_reading_page(&article);
+    Ok((
+        [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+        reading_page,
+    )
+        .into_response())
 }
 
 pub enum AppError {
