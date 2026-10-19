@@ -49,26 +49,52 @@ fn test_formatter_generates_markdown_with_frontmatter_and_original_link() {
         clean_html: "<h2>Pilares</h2><p>Texto de teste.</p><blockquote>Citação inspiradora</blockquote><p><a href=\"https://fuxico.lumen.pink\">Fuxico</a></p>".to_string(),
     };
 
-    let md = formatter::format_markdown(&extracted)
-        .expect("Formatação para Markdown deve ter sucesso");
+    let md =
+        formatter::format_markdown(&extracted).expect("Formatação para Markdown deve ter sucesso");
 
     // Validação estrita do YAML Frontmatter
-    assert!(md.starts_with("---\n"), "Markdown deve começar com YAML Frontmatter");
-    assert!(md.contains("source: \"https://banca.2lp.in/artigo-soberania\""), "Frontmatter deve conter source exato");
-    assert!(md.contains("domain: \"banca.2lp.in\""), "Frontmatter deve conter domain");
-    assert!(md.contains("generator: \"resenha\""), "Frontmatter deve conter generator");
-    assert!(md.contains("author: \"Lumen Pink\""), "Frontmatter deve conter autor");
+    assert!(
+        md.starts_with("---\n"),
+        "Markdown deve começar com YAML Frontmatter"
+    );
+    assert!(
+        md.contains("source: \"https://banca.2lp.in/artigo-soberania\""),
+        "Frontmatter deve conter source exato"
+    );
+    assert!(
+        md.contains("domain: \"banca.2lp.in\""),
+        "Frontmatter deve conter domain"
+    );
+    assert!(
+        md.contains("generator: \"resenha\""),
+        "Frontmatter deve conter generator"
+    );
+    assert!(
+        md.contains("author: \"Lumen Pink\""),
+        "Frontmatter deve conter autor"
+    );
 
     // Validação obrigatória da Badge de Fonte Original visível no topo
     assert!(
-        md.contains("> ↗ **Fonte original:** [banca.2lp.in](https://banca.2lp.in/artigo-soberania)"),
+        md.contains(
+            "> ↗ **Fonte original:** [banca.2lp.in](https://banca.2lp.in/artigo-soberania)"
+        ),
         "Markdown deve conter a citação destacada da fonte original no topo"
     );
 
     // Validação da semântica Markdown
-    assert!(md.contains("## Pilares"), "Cabeçalhos h2 devem ser convertidos");
-    assert!(md.contains("> Citação inspiradora"), "Blockquotes devem ser preservados");
-    assert!(md.contains("[Fuxico](https://fuxico.lumen.pink)"), "Links devem ser preservados");
+    assert!(
+        md.contains("## Pilares"),
+        "Cabeçalhos h2 devem ser convertidos"
+    );
+    assert!(
+        md.contains("> Citação inspiradora"),
+        "Blockquotes devem ser preservados"
+    );
+    assert!(
+        md.contains("[Fuxico](https://fuxico.lumen.pink)"),
+        "Links devem ser preservados"
+    );
 }
 
 #[tokio::test]

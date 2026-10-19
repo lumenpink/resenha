@@ -32,9 +32,11 @@ pub struct ExtractedArticle {
 }
 
 pub async fn process_url(url: &str) -> Result<String, ResenhaError> {
-    todo!("implementar process_url")
+    let raw_html = fetcher::fetch_html(url).await?;
+    process_html(&raw_html, url)
 }
 
 pub fn process_html(html: &str, url: &str) -> Result<String, ResenhaError> {
-    todo!("implementar process_html")
+    let article = extractor::extract_and_sanitize(html, url)?;
+    formatter::format_markdown(&article)
 }

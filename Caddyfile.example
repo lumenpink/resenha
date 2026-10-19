@@ -1,0 +1,15 @@
+# Exemplo de integração do resenha no Caddyfile (fuxico.lumen.pink ou standalone)
+
+fuxico.lumen.pink {
+    # Rota do resenha: encaminha requisições para o container na porta 3030
+    handle_path /resenha* {
+        reverse_proxy 127.0.0.1:3030
+    }
+
+    # Restante da configuração do Fuxico
+    handle {
+        root * /var/www/fuxico
+        php_fastcgi unix//run/php/php-fpm.sock
+        file_server
+    }
+}

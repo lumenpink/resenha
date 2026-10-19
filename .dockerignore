@@ -1,0 +1,8 @@
+target/
+.git/
+.gost/
+.forgejo/
+tests/
+*.md
+LICENSE
+site/
