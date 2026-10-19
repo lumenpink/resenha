@@ -1,0 +1,30 @@
+[package]
+name = "resenha"
+version = "0.1.0"
+edition = "2021"
+authors = ["Lumen Pink <hi@lumen.pink>"]
+description = "Subsistema de Extração, Sanitização e Destilação Tipográfica na Borda"
+license = "GPL-3.0"
+
+[dependencies]
+tokio = { version = "1.40", features = ["full"] }
+axum = { version = "0.8", features = ["tokio"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "charset"] }
+readability = "0.3.0"
+ammonia = "4.2.4"
+htmd = "0.5.6"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+url = "2.5"
+clap = { version = "4.5", features = ["derive"] }
+thiserror = "2.0"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
