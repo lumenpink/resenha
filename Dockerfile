@@ -5,6 +5,11 @@ FROM rust:1-slim-bookworm AS builder
 
 LABEL maintainer="Lumen Pink <hi@lumen.pink>"
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Cache inteligente de dependências
@@ -27,6 +32,7 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    libssl3 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
