@@ -63,16 +63,21 @@ resenha serve --port 3030 --bind 0.0.0.0
 - **Finalidade**: Verificação de integridade para Docker/Kube/Caddy.
 - **Resposta**: `200 OK`, `text/plain: ok`.
 
+#### `GET /` (Sem parâmetros)
+- **Finalidade**: Interface web editorial minimalista com formulário para submissão de URL, seleção de formato (`html` para leitura na tela ou `md` para download) e atalho para bookmarklet.
+- **Resposta**: `200 OK`, `text/html; charset=utf-8`.
+
 #### `GET /` ou `GET /resenha?url={ALVO}`
 - **Parâmetros**:
-  - `url` (obrigatório): URL codificada do artigo original.
-  - `format` (opcional): `md` (padrão) ou `json`.
+  - `url` (obrigatório se invocando a extração): URL codificada do artigo original.
+  - `format` (opcional): `html` (leitura tipográfica na tela), `md` (CommonMark com Frontmatter) ou `json`.
 - **Negociação de Conteúdo**:
-  - Se cabeçalho `Accept: application/json` ou `?format=json`: retorna JSON com payload completo.
-  - Se `Accept: text/markdown` ou padrão: retorna `text/markdown; charset=utf-8`.
+  - Se `?format=html` ou se o navegador enviar `Accept: text/html` (sem `format=md` explícito): renderiza a página de leitura tipográfica soberana com barra de topo (`[ ↗ Original ]`, `[ ⬇ Markdown ]`, `[ ↩ Nova Resenha ]`).
+  - Se `?format=md` ou cabeçalho `Accept: text/markdown`: retorna `text/markdown; charset=utf-8`.
+  - Se `?format=json` ou cabeçalho `Accept: application/json`: retorna JSON com payload completo.
 - **Códigos de Resposta**:
-  - `200 OK`: Extração concluída.
-  - `400 Bad Request`: Parâmetro `url` ausente ou inválido.
+  - `200 OK`: Extração concluída ou página inicial renderizada.
+  - `400 Bad Request`: Parâmetro `url` inválido ou vazio.
   - `502 Bad Gateway`: Falha de conexão ou timeout na página de origem.
   - `422 Unprocessable Entity`: Conteúdo não pôde ser extraído como artigo.
 
