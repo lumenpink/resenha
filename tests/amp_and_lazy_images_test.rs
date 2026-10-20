@@ -27,7 +27,9 @@ fn test_extractor_preserves_amp_images() {
         "HTML limpo deve conter tag <img> resultante de <amp-img>"
     );
     assert!(
-        extracted.clean_html.contains("https://s2-g1.glbimg.com/foto-teste.jpg"),
+        extracted
+            .clean_html
+            .contains("https://s2-g1.glbimg.com/foto-teste.jpg"),
         "HTML limpo deve preservar o link da imagem"
     );
 
@@ -59,7 +61,9 @@ fn test_extractor_promotes_lazy_load_attributes() {
         .expect("Extração deve ocorrer com sucesso");
 
     assert!(
-        extracted.clean_html.contains("https://exemplo.com/imagem-real.jpg"),
+        extracted
+            .clean_html
+            .contains("https://exemplo.com/imagem-real.jpg"),
         "Atributo data-src deve ser promovido para src"
     );
     assert!(
