@@ -69,12 +69,25 @@ resenha serve --port 3030 --bind 0.0.0.0
 
 #### `GET /` ou `GET /resenha?url={ALVO}`
 - **Parâmetros**:
-  - `url` (obrigatório se invocando a extração): URL codificada do artigo original.
-  - `format` (opcional): `html` (leitura tipográfica na tela), `md` (CommonMark com Frontmatter) ou `json`.
-- **Negociação de Conteúdo**:
-  - Se `?format=html` ou se o navegador enviar `Accept: text/html` (sem `format=md` explícito): renderiza a página de leitura tipográfica soberana com barra de topo (`[ ↗ Original ]`, `[ ⬇ Markdown ]`, `[ ↩ Nova Resenha ]`).
-  - Se `?format=md` ou cabeçalho `Accept: text/markdown`: retorna `text/markdown; charset=utf-8`.
-  - Se `?format=json` ou cabeçalho `Accept: application/json`: retorna JSON com payload completo.
+  - `url` (obrigatório se invocando a extração via query string): URL codificada do artigo original.
+  - `format` (opcional): `html` (leitura tipográfica na tela), `md` (CommonMark com Frontmatter), `json` ou `zip` (pacote editorial completo).
+
+#### Acessos Rápidos por Rota (Path Routing)
+O servidor suporta atalhos diretos sem a necessidade de query strings:
+- `GET /https://site.com/...` ou `GET /site.com/...`: Formato padrão (HTML no navegador, Markdown no terminal).
+- `GET /m/https://site.com/...` ou `GET /md/...`: Markdown puro direto (`text/markdown`).
+- `GET /z/https://site.com/...` ou `GET /zip/...`: Pacote editorial `.zip` (`application/zip`).
+- `GET /j/https://site.com/...` ou `GET /json/...`: JSON estruturado (`application/json`).
+
+#### Autodetecção de Terminal (CLI)
+- Clientes de linha de comando (`curl`, `wget`, `httpie`) ou requisições sem `text/html` no cabeçalho `Accept` recebem automaticamente **Markdown puro** no stdout, sem necessidade de parâmetros.
+- Navegadores com `Accept: text/html` recebem a interface web de leitura tipográfica.
+
+#### Pacote Editorial Canônico (.zip)
+Ao solicitar o formato `zip` (via rota `/z/...`, query `?format=zip` ou botão web):
+- O pacote contém na raiz o arquivo `main.md` com YAML Frontmatter e links de mídia apontando para `attachments/<arquivo>`.
+- O pacote contém a pasta `attachments/` com todas as imagens e ativos baixados em resolução original.
+- Totalmente compatível com Joaju e Obsidian out-of-the-box.
 - **Códigos de Resposta**:
   - `200 OK`: Extração concluída ou página inicial renderizada.
   - `400 Bad Request`: Parâmetro `url` inválido ou vazio.
