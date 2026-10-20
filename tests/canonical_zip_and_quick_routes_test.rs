@@ -28,24 +28,28 @@ fn test_create_editorial_zip_structure() {
     let mut archive = zip::ZipArchive::new(reader).expect("Deve ser um ZIP válido");
 
     // 1. main.md na raiz
-    let mut main_file = archive
-        .by_name("main.md")
-        .expect("ZIP deve conter main.md na raiz");
-    let mut main_content = String::new();
-    main_file
-        .read_to_string(&mut main_content)
-        .expect("Deve ler main.md");
-    assert_eq!(main_content, md);
+    {
+        let mut main_file = archive
+            .by_name("main.md")
+            .expect("ZIP deve conter main.md na raiz");
+        let mut main_content = String::new();
+        main_file
+            .read_to_string(&mut main_content)
+            .expect("Deve ler main.md");
+        assert_eq!(main_content, md);
+    }
 
     // 2. attachments/imagem-1.png
-    let mut img_file = archive
-        .by_name("attachments/imagem-1.png")
-        .expect("ZIP deve conter attachments/imagem-1.png");
-    let mut img_content = Vec::new();
-    img_file
-        .read_to_end(&mut img_content)
-        .expect("Deve ler imagem");
-    assert_eq!(img_content, fake_png_bytes);
+    {
+        let mut img_file = archive
+            .by_name("attachments/imagem-1.png")
+            .expect("ZIP deve conter attachments/imagem-1.png");
+        let mut img_content = Vec::new();
+        img_file
+            .read_to_end(&mut img_content)
+            .expect("Deve ler imagem");
+        assert_eq!(img_content, fake_png_bytes);
+    }
 }
 
 #[tokio::test]

@@ -28,12 +28,12 @@ fn test_render_reading_page_with_markdown() {
         }],
     };
 
-    let md_content = "Parágrafo a partir do markdown com ![imagem](assets/imagem-1.webp)";
+    let md_content = "Parágrafo a partir do markdown com ![imagem](attachments/imagem-1.webp)";
     let page = formatter::render_reading_page(&article, md_content, Some("https://fuxico.lohn.in"));
 
     // Valida que o conteúdo foi renderizado a partir do Markdown
     assert!(page.contains("<p>Parágrafo a partir do markdown com"));
-    assert!(page.contains("<img src=\"assets/imagem-1.webp\" alt=\"imagem\""));
+    assert!(page.contains("<img src=\"attachments/imagem-1.webp\" alt=\"imagem\""));
     // Valida presença do botão Fuxicar quando FUXICO_API_URL está presente
     assert!(page.contains("⚡ Fuxicar"));
 }

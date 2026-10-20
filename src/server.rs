@@ -22,10 +22,91 @@ pub fn create_app() -> Router {
         .route("/", get(resenha_handler))
         .route("/resenha", get(resenha_handler))
         .route("/api/fuxicar", post(fuxicar_handler).get(fuxicar_handler))
+        .route("/{*path}", get(path_route_handler))
 }
 
 async fn healthz_handler() -> &'static str {
     "ok"
+}
+
+fn is_cli_client(headers: &HeaderMap) -> bool {
+    if let Some(ua) = headers.get(header::USER_AGENT).and_then(|h| h.to_str().ok()) {
+        let ua_lower = ua.to_lowercase();
+        if ua_lower.starts_with("curl/")
+            || ua_lower.starts_with("wget/")
+            || ua_lower.starts_with("httpie/")
+            || ua_lower.starts_with("fetch/")
+        {
+            return true;
+        }
+    }
+
+    if let Some(accept) = headers.get(header::ACCEPT).and_then(|h| h.to_str().ok()) {
+        if !accept.contains("text/html") && (accept.contains("*/*") || accept.is_empty()) {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn normalize_target_url(raw: &str) -> String {
+    let s = raw.trim();
+    if s.starts_with("http://") || s.starts_with("https://") {
+        s.to_string()
+    } else if let Some(rest) = s.strip_prefix("http:/") {
+        format!("http://{rest}")
+    } else if let Some(rest) = s.strip_prefix("https:/") {
+        format!("https://{rest}")
+    } else {
+        format!("https://{s}")
+    }
+}
+
+fn parse_path_and_format(path: &str) -> (Option<&'static str>, String) {
+    let trimmed = path.trim().trim_start_matches('/');
+
+    let (format, rest) = if let Some(stripped) = trimmed.strip_prefix("z/") {
+        (Some("zip"), stripped)
+    } else if let Some(stripped) = trimmed.strip_prefix("zip/") {
+        (Some("zip"), stripped)
+    } else if let Some(stripped) = trimmed.strip_prefix("m/") {
+        (Some("md"), stripped)
+    } else if let Some(stripped) = trimmed.strip_prefix("md/") {
+        (Some("md"), stripped)
+    } else if let Some(stripped) = trimmed.strip_prefix("j/") {
+        (Some("json"), stripped)
+    } else if let Some(stripped) = trimmed.strip_prefix("json/") {
+        (Some("json"), stripped)
+    } else {
+        (None, trimmed)
+    };
+
+    let normalized_url = normalize_target_url(rest);
+    (format, normalized_url)
+}
+
+async fn path_route_handler(
+    headers: HeaderMap,
+    axum::extract::Path(path): axum::extract::Path<String>,
+) -> Result<Response, AppError> {
+    let clean = path.trim();
+    if clean.is_empty() {
+        return Ok(Html(formatter::render_home_page()).into_response());
+    }
+    if clean == "favicon.ico" {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    }
+    if clean == "robots.txt" {
+        return Ok((
+            [(header::CONTENT_TYPE, "text/plain")],
+            "User-agent: *\nDisallow: /api/\n",
+        )
+            .into_response());
+    }
+
+    let (forced_format, target_url) = parse_path_and_format(clean);
+    process_article(headers, &target_url, forced_format).await
 }
 
 async fn resenha_handler(
@@ -35,11 +116,19 @@ async fn resenha_handler(
     let target_url = match query.url {
         Some(ref u) if !u.trim().is_empty() => u.trim(),
         _ => {
-            // Sem URL fornecida: renderiza a página inicial com o formulário
             return Ok(Html(formatter::render_home_page()).into_response());
         }
     };
 
+    let forced_format = query.format.as_deref().filter(|s| !s.is_empty());
+    process_article(headers, target_url, forced_format).await
+}
+
+async fn process_article(
+    headers: HeaderMap,
+    target_url: &str,
+    forced_format: Option<&str>,
+) -> Result<Response, AppError> {
     let raw_html = fetcher::fetch_html(target_url)
         .await
         .map_err(AppError::Internal)?;
@@ -66,9 +155,34 @@ async fn resenha_handler(
         }
     }
 
-    let requested_format = query.format.as_deref().unwrap_or("");
+    let wants_zip = forced_format == Some("zip")
+        || headers
+            .get(header::ACCEPT)
+            .and_then(|h| h.to_str().ok())
+            .map(|a| a.contains("application/zip"))
+            .unwrap_or(false);
 
-    let wants_json = requested_format == "json"
+    if wants_zip {
+        let zip_bytes = assets::create_editorial_zip(&markdown, &article.assets)
+            .map_err(AppError::Internal)?;
+        let safe_slug: String = article
+            .title
+            .chars()
+            .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '_' })
+            .collect();
+        let filename = format!("{safe_slug}.zip");
+        let disposition = format!("attachment; filename=\"{filename}\"");
+        return Ok((
+            [
+                (header::CONTENT_TYPE, "application/zip"),
+                (header::CONTENT_DISPOSITION, disposition.as_str()),
+            ],
+            zip_bytes,
+        )
+            .into_response());
+    }
+
+    let wants_json = forced_format == Some("json")
         || headers
             .get(header::ACCEPT)
             .and_then(|h| h.to_str().ok())
@@ -89,12 +203,13 @@ async fn resenha_handler(
         return Ok(Json(json_body).into_response());
     }
 
-    let wants_markdown = requested_format == "md"
+    let wants_markdown = forced_format == Some("md")
         || headers
             .get(header::ACCEPT)
             .and_then(|h| h.to_str().ok())
             .map(|a| a.contains("text/markdown") || a.contains("text/x-markdown"))
-            .unwrap_or(false);
+            .unwrap_or(false)
+        || (forced_format.is_none() && is_cli_client(&headers));
 
     if wants_markdown {
         return Ok((

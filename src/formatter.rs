@@ -188,6 +188,10 @@ pub fn render_home_page() -> &'static str {
                             <input type="radio" name="format" value="md">
                             Markdown Puro (.md)
                         </label>
+                        <label class="radio-option">
+                            <input type="radio" name="format" value="zip">
+                            Pacote Editorial (.zip)
+                        </label>
                     </div>
                 </div>
                 <button type="submit">✂ Resenhar Artigo</button>
@@ -430,6 +434,7 @@ pub fn render_reading_page(
                 {fuxico_button}
                 <a href="{source_escaped}" target="_blank" rel="noopener noreferrer" class="btn-action" title="Abrir artigo original na fonte">↗ Original</a>
                 <a href="/?url={encoded_url}&format=md" class="btn-action" title="Baixar versão Markdown pura">⬇ Markdown</a>
+                <a href="/?url={encoded_url}&format=zip" class="btn-action" title="Baixar pacote editorial ZIP (main.md + anexos)">📦 Pacote ZIP</a>
                 <a href="/" class="btn-action" title="Destilar outro artigo">↩ Nova Resenha</a>
             </div>
         </div>

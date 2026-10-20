@@ -49,7 +49,7 @@ pub async fn extract_and_download_assets(
         };
 
         if let Some(existing_filename) = seen_urls.get(&resolved_url) {
-            let replacement = format!("![{alt_text}](assets/{existing_filename})");
+            let replacement = format!("![{alt_text}](attachments/{existing_filename})");
             rewritten_markdown = rewritten_markdown.replace(&full_match, &replacement);
             continue;
         }
@@ -100,9 +100,46 @@ pub async fn extract_and_download_assets(
 
         seen_urls.insert(resolved_url, filename.clone());
 
-        let replacement = format!("![{alt_text}](assets/{filename})");
+        let replacement = format!("![{alt_text}](attachments/{filename})");
         rewritten_markdown = rewritten_markdown.replace(&full_match, &replacement);
     }
 
     Ok((rewritten_markdown, assets))
+}
+
+pub fn create_editorial_zip(
+    markdown: &str,
+    assets: &[ArticleAsset],
+) -> Result<Vec<u8>, ResenhaError> {
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+
+    let mut buffer = std::io::Cursor::new(Vec::new());
+    {
+        let mut zip = zip::ZipWriter::new(&mut buffer);
+        let options = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+
+        // 1. main.md na raiz do ZIP
+        zip.start_file("main.md", options)
+            .map_err(|e| ResenhaError::Asset(format!("Erro ao criar main.md no ZIP: {e}")))?;
+        zip.write_all(markdown.as_bytes())
+            .map_err(|e| ResenhaError::Asset(format!("Erro ao escrever main.md: {e}")))?;
+
+        // 2. attachments/<filename>
+        for asset in assets {
+            let path = format!("attachments/{}", asset.filename);
+            zip.start_file(&path, options)
+                .map_err(|e| ResenhaError::Asset(format!("Erro ao criar {path} no ZIP: {e}")))?;
+            if let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(&asset.data_base64) {
+                zip.write_all(&bytes)
+                    .map_err(|e| ResenhaError::Asset(format!("Erro ao escrever {path}: {e}")))?;
+            }
+        }
+
+        zip.finish()
+            .map_err(|e| ResenhaError::Asset(format!("Erro ao finalizar ZIP: {e}")))?;
+    }
+
+    Ok(buffer.into_inner())
 }
