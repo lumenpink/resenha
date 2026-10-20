@@ -227,6 +227,199 @@ pub fn strip_frontmatter(md: &str) -> &str {
     md
 }
 
+pub fn render_error_page(
+    status: axum::http::StatusCode,
+    title: &str,
+    message: &str,
+    details: Option<&str>,
+) -> String {
+    let title_escaped = html_escape(title);
+    let message_escaped = html_escape(message);
+    let status_code = status.as_u16();
+    let details_section = if let Some(d) = details.filter(|s| !s.is_empty()) {
+        let d_escaped = html_escape(d);
+        format!(
+            r#"<div class="error-details-box">
+                <div class="error-details-label">Detalhes Técnicos:</div>
+                <pre class="error-details"><code>{d_escaped}</code></pre>
+            </div>"#
+        )
+    } else {
+        String::new()
+    };
+
+    format!(
+        r#"<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{status_code} // {title_escaped} - resenha</title>
+    <style>
+        :root {{
+            --bg: #fdfbf7;
+            --text: #2c2825;
+            --muted: #736b63;
+            --border: #e0d8ce;
+            --accent: #b83232;
+            --card-bg: #ffffff;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-serif: "Charter", "Georgia", "Iowan Old Style", serif;
+            --font-mono: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+        }}
+        @media (prefers-color-scheme: dark) {{
+            :root {{
+                --bg: #141414;
+                --text: #dedede;
+                --muted: #949494;
+                --border: #2a2a2a;
+                --accent: #ff6b6b;
+                --card-bg: #1e1e1e;
+            }}
+        }}
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }}
+        .container {{
+            width: 100%;
+            max-width: 580px;
+        }}
+        .header {{
+            margin-bottom: 2rem;
+            text-align: center;
+        }}
+        .logo {{
+            font-family: var(--font-serif);
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+            text-decoration: none;
+            display: inline-block;
+        }}
+        .tagline {{
+            color: var(--muted);
+            font-size: 0.9rem;
+        }}
+        .card {{
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            text-align: center;
+        }}
+        .status-badge {{
+            display: inline-block;
+            background: var(--accent);
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 4px;
+            margin-bottom: 1.25rem;
+        }}
+        .error-title {{
+            font-family: var(--font-serif);
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }}
+        .error-message {{
+            color: var(--muted);
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }}
+        .error-details-box {{
+            text-align: left;
+            margin-bottom: 1.5rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.85rem 1rem;
+        }}
+        .error-details-label {{
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+        }}
+        .error-details {{
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text);
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }}
+        .actions {{
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }}
+        .btn-home {{
+            display: inline-block;
+            background: var(--text);
+            color: var(--bg);
+            text-decoration: none;
+            padding: 0.8rem 1.4rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: opacity 0.15s;
+        }}
+        .btn-home:hover {{
+            opacity: 0.9;
+        }}
+        .footer-note {{
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--muted);
+            font-family: var(--font-mono);
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/" class="logo">✂ resenha</a>
+            <div class="tagline">destilação tipográfica soberana na borda</div>
+        </div>
+        <div class="card">
+            <div class="status-badge">{status_code}</div>
+            <h1 class="error-title">{title_escaped}</h1>
+            <p class="error-message">{message_escaped}</p>
+            {details_section}
+            <div class="actions">
+                <a href="/" class="btn-home">← Voltar à página inicial</a>
+            </div>
+        </div>
+        <div class="footer-note">
+            <span>2LP // A Banca &bull; soberania da leitura</span>
+        </div>
+    </div>
+</body>
+</html>"#
+    )
+}
+
 pub fn render_reading_page(
     article: &ExtractedArticle,
     md_content: &str,
@@ -258,7 +451,19 @@ pub fn render_reading_page(
     };
 
     let body_md = strip_frontmatter(md_content).trim();
-    let rendered_body = markdown_to_html(body_md);
+    let mut rendered_body = markdown_to_html(body_md);
+
+    // Na visualização web, substituir referências relativas "attachments/..." por dados inline base64
+    // Isso torna a página soberana, autônoma e evita que o navegador tente requisitar /attachments/...
+    for asset in &article.assets {
+        let needle = format!("attachments/{}", asset.filename);
+        let replacement = if !asset.data_base64.is_empty() {
+            format!("data:{};base64,{}", asset.mime_type, asset.data_base64)
+        } else {
+            asset.original_url.clone()
+        };
+        rendered_body = rendered_body.replace(&needle, &replacement);
+    }
 
     format!(
         r#"<!DOCTYPE html>

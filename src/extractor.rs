@@ -62,6 +62,31 @@ pub fn preprocess_html(html: &str) -> String {
             .to_string();
     }
 
+    // 7. Promover figuras de destaque externas para dentro do <article>
+    // Portais como O Globo posicionam a foto principal no <section class="content--header"> fora de <article>.
+    // O Readability escolhe <article> e descarta a foto do topo.
+    // Promover a figura para o início do <article> garante sua preservação.
+    if let (Ok(top_fig_re), Ok(art_re)) = (
+        regex::Regex::new(
+            r#"(?is)<figure\b[^>]*class\s*=\s*["'][^"']*\b(?:content-featured-figure|content-top-image|featured-figure|article-lead-image)\b[^"']*["'][^>]*>.*?</figure>"#,
+        ),
+        regex::Regex::new(r#"(?i)(<article\b[^>]*>)"#),
+    ) {
+        if let Some(m_fig) = top_fig_re.find(&processed) {
+            if let Some(m_art) = art_re.find(&processed) {
+                if m_fig.start() < m_art.start() {
+                    let fig_html = m_fig.as_str().to_string();
+                    let before_fig = &processed[..m_fig.start()];
+                    let after_fig = &processed[m_fig.end()..];
+                    let without_top = format!("{before_fig}{after_fig}");
+                    processed = art_re
+                        .replace(&without_top, format!("$1\n{fig_html}"))
+                        .to_string();
+                }
+            }
+        }
+    }
+
     processed
 }
 

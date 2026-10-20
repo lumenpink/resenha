@@ -66,6 +66,36 @@ fn normalize_target_url(raw: &str) -> String {
     }
 }
 
+fn is_valid_url_target(target: &str) -> bool {
+    let s = target.trim();
+    if let Ok(parsed) = url::Url::parse(s) {
+        if parsed.scheme() != "http" && parsed.scheme() != "https" {
+            return false;
+        }
+        if let Some(host) = parsed.host_str() {
+            if host == "localhost" || host == "127.0.0.1" || host.contains('.') {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn wants_html_response(headers: &HeaderMap, forced_format: Option<&str>) -> bool {
+    if forced_format == Some("json") || forced_format == Some("md") || forced_format == Some("zip")
+    {
+        return false;
+    }
+    if is_cli_client(headers) {
+        return false;
+    }
+    headers
+        .get(header::ACCEPT)
+        .and_then(|h| h.to_str().ok())
+        .map(|a| a.contains("text/html"))
+        .unwrap_or(true)
+}
+
 fn parse_path_and_format(path: &str) -> (Option<&'static str>, String) {
     let trimmed = path.trim().trim_start_matches('/');
 
@@ -109,6 +139,15 @@ async fn path_route_handler(
     }
 
     let (forced_format, target_url) = parse_path_and_format(clean);
+    let wants_html = wants_html_response(&headers, forced_format);
+
+    if !is_valid_url_target(&target_url) {
+        return Err(AppError::NotFound {
+            message: format!("O caminho '/{clean}' não corresponde a uma URL de artigo válida."),
+            wants_html,
+        });
+    }
+
     process_article(headers, &target_url, forced_format).await
 }
 
@@ -124,6 +163,17 @@ async fn resenha_handler(
     };
 
     let forced_format = query.format.as_deref().filter(|s| !s.is_empty());
+    let wants_html = wants_html_response(&headers, forced_format);
+
+    if !is_valid_url_target(target_url) {
+        return Err(AppError::BadRequest {
+            message: format!(
+                "O endereço informado '{target_url}' não é uma URL HTTP/HTTPS válida."
+            ),
+            wants_html,
+        });
+    }
+
     process_article(headers, target_url, forced_format).await
 }
 
@@ -132,13 +182,16 @@ async fn process_article(
     target_url: &str,
     forced_format: Option<&str>,
 ) -> Result<Response, AppError> {
-    let raw_html = fetcher::fetch_html(target_url)
-        .await
-        .map_err(AppError::Internal)?;
-    let mut article =
-        extractor::extract_and_sanitize(&raw_html, target_url).map_err(AppError::Internal)?;
+    let wants_html = wants_html_response(&headers, forced_format);
+    let map_err = |e: ResenhaError| AppError::Internal {
+        error: e,
+        wants_html,
+    };
 
-    let mut markdown = formatter::format_markdown(&article).map_err(AppError::Internal)?;
+    let raw_html = fetcher::fetch_html(target_url).await.map_err(map_err)?;
+    let mut article = extractor::extract_and_sanitize(&raw_html, target_url).map_err(map_err)?;
+
+    let mut markdown = formatter::format_markdown(&article).map_err(map_err)?;
 
     // Download de assets caso DOWNLOAD_ASSETS não esteja explicitamente desativado
     let should_download_assets = std::env::var("DOWNLOAD_ASSETS")
@@ -167,7 +220,7 @@ async fn process_article(
 
     if wants_zip {
         let zip_bytes =
-            assets::create_editorial_zip(&markdown, &article.assets).map_err(AppError::Internal)?;
+            assets::create_editorial_zip(&markdown, &article.assets).map_err(map_err)?;
         let safe_slug: String = article
             .title
             .chars()
@@ -245,18 +298,24 @@ async fn fuxicar_handler(Query(query): Query<ResenhaQuery>) -> Result<Response, 
         .as_deref()
         .map(str::trim)
         .filter(|u| !u.is_empty())
-        .ok_or_else(|| AppError::BadRequest("Parâmetro 'url' obrigatório".to_string()))?;
+        .ok_or_else(|| AppError::BadRequest {
+            message: "Parâmetro 'url' obrigatório".to_string(),
+            wants_html: false,
+        })?;
 
-    let fuxico_api_url = std::env::var("FUXICO_API_URL").map_err(|_| {
-        AppError::BadRequest("Variável de ambiente FUXICO_API_URL não configurada".to_string())
+    let fuxico_api_url = std::env::var("FUXICO_API_URL").map_err(|_| AppError::BadRequest {
+        message: "Variável de ambiente FUXICO_API_URL não configurada".to_string(),
+        wants_html: false,
     })?;
 
-    let raw_html = fetcher::fetch_html(target_url)
-        .await
-        .map_err(AppError::Internal)?;
-    let mut article =
-        extractor::extract_and_sanitize(&raw_html, target_url).map_err(AppError::Internal)?;
-    let mut markdown = formatter::format_markdown(&article).map_err(AppError::Internal)?;
+    let map_err = |e: ResenhaError| AppError::Internal {
+        error: e,
+        wants_html: false,
+    };
+
+    let raw_html = fetcher::fetch_html(target_url).await.map_err(map_err)?;
+    let mut article = extractor::extract_and_sanitize(&raw_html, target_url).map_err(map_err)?;
+    let mut markdown = formatter::format_markdown(&article).map_err(map_err)?;
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
@@ -307,10 +366,10 @@ async fn fuxicar_handler(Query(query): Query<ResenhaQuery>) -> Result<Response, 
         }
     }
 
-    let resp = req
-        .send()
-        .await
-        .map_err(|e| AppError::Internal(ResenhaError::Network(e)))?;
+    let resp = req.send().await.map_err(|e| AppError::Internal {
+        error: ResenhaError::Network(e),
+        wants_html: false,
+    })?;
     let status = resp.status();
     let body_text = resp.text().await.unwrap_or_default();
 
@@ -329,21 +388,121 @@ async fn fuxicar_handler(Query(query): Query<ResenhaQuery>) -> Result<Response, 
 }
 
 pub enum AppError {
-    BadRequest(String),
-    Internal(ResenhaError),
+    BadRequest {
+        message: String,
+        wants_html: bool,
+    },
+    NotFound {
+        message: String,
+        wants_html: bool,
+    },
+    Internal {
+        error: ResenhaError,
+        wants_html: bool,
+    },
 }
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
-            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
-            AppError::Internal(err) => {
-                let status = match err {
-                    ResenhaError::Network(_) => StatusCode::BAD_GATEWAY,
-                    ResenhaError::InvalidUrl(_) => StatusCode::BAD_REQUEST,
-                    _ => StatusCode::UNPROCESSABLE_ENTITY,
+            AppError::BadRequest {
+                message,
+                wants_html,
+            } => {
+                let status = StatusCode::BAD_REQUEST;
+                if wants_html {
+                    (
+                        status,
+                        Html(formatter::render_error_page(
+                            status,
+                            "Requisição Inválida",
+                            &message,
+                            None,
+                        )),
+                    )
+                        .into_response()
+                } else {
+                    (status, format!("Erro 400: {message}")).into_response()
+                }
+            }
+            AppError::NotFound {
+                message,
+                wants_html,
+            } => {
+                let status = StatusCode::NOT_FOUND;
+                if wants_html {
+                    (
+                        status,
+                        Html(formatter::render_error_page(
+                            status,
+                            "Página Não Encontrada",
+                            &message,
+                            None,
+                        )),
+                    )
+                        .into_response()
+                } else {
+                    (status, format!("Erro 404: {message}")).into_response()
+                }
+            }
+            AppError::Internal { error, wants_html } => {
+                let (status, title, msg) = match &error {
+                    ResenhaError::Network(reqwest_err) => {
+                        if let Some(status_code) = reqwest_err.status() {
+                            if status_code == reqwest::StatusCode::NOT_FOUND {
+                                (
+                                    StatusCode::NOT_FOUND,
+                                    "Artigo Não Encontrado na Origem",
+                                    "O servidor de origem informou que a matéria ou URL requisitada não existe (HTTP 404).",
+                                )
+                            } else if status_code == reqwest::StatusCode::FORBIDDEN {
+                                (
+                                    StatusCode::FORBIDDEN,
+                                    "Acesso Restrito na Origem",
+                                    "O servidor de origem bloqueou a leitura da página (HTTP 403 / Paywall).",
+                                )
+                            } else {
+                                (
+                                    StatusCode::BAD_GATEWAY,
+                                    "Falha de Comunicação com a Origem",
+                                    "Não foi possível obter a página a partir do servidor de origem.",
+                                )
+                            }
+                        } else {
+                            (
+                                StatusCode::BAD_GATEWAY,
+                                "Falha de Rede",
+                                "Não foi possível estabelecer conexão de rede com o servidor de destino.",
+                            )
+                        }
+                    }
+                    ResenhaError::InvalidUrl(_) => (
+                        StatusCode::BAD_REQUEST,
+                        "Endereço Inválido",
+                        "O endereço fornecido não é uma URL HTTP/HTTPS válida.",
+                    ),
+                    _ => (
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        "Erro de Processamento",
+                        "Não foi possível extrair e sanitizar o conteúdo desta página.",
+                    ),
                 };
-                (status, format!("Erro no processamento: {err}")).into_response()
+
+                if wants_html {
+                    let err_string = error.to_string();
+                    (
+                        status,
+                        Html(formatter::render_error_page(
+                            status,
+                            title,
+                            msg,
+                            Some(&err_string),
+                        )),
+                    )
+                        .into_response()
+                } else {
+                    (status, format!("Erro no processamento: {error}")).into_response()
+                }
             }
         }
     }

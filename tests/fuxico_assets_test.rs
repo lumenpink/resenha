@@ -31,9 +31,9 @@ fn test_render_reading_page_with_markdown() {
     let md_content = "Parágrafo a partir do markdown com ![imagem](attachments/imagem-1.webp)";
     let page = formatter::render_reading_page(&article, md_content, Some("https://fuxico.lohn.in"));
 
-    // Valida que o conteúdo foi renderizado a partir do Markdown
+    // Valida que o conteúdo foi renderizado a partir do Markdown com imagem embutida base64
     assert!(page.contains("<p>Parágrafo a partir do markdown com"));
-    assert!(page.contains("<img src=\"attachments/imagem-1.webp\" alt=\"imagem\""));
+    assert!(page.contains("data:image/webp;base64,AAAA"));
     // Valida presença do botão Fuxicar quando FUXICO_API_URL está presente
     assert!(page.contains("⚡ Fuxicar"));
 }

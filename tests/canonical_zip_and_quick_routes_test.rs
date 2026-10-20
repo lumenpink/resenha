@@ -58,19 +58,17 @@ async fn test_cli_autodetection_and_quick_routes() {
 
     // 1. Atalho /m/ deve retornar Markdown puro
     let req = Request::builder()
-        .uri("/m/https://example.com/artigo")
+        .uri("/m/https://example.com")
         .header(header::USER_AGENT, "curl/8.5.0")
         .body(Body::empty())
         .unwrap();
 
     let resp = app.clone().oneshot(req).await.unwrap();
-    // Se o fetcher tentar buscar example.com/artigo em teste offline, retornará ou 200/502/400
-    // mas a rota é roteada corretamente (não 404!)
     assert_ne!(resp.status(), StatusCode::NOT_FOUND);
 
     // 2. Atalho /z/ deve rotear para o formato ZIP
     let req_zip = Request::builder()
-        .uri("/z/https://example.com/artigo")
+        .uri("/z/https://example.com")
         .body(Body::empty())
         .unwrap();
 
@@ -79,7 +77,7 @@ async fn test_cli_autodetection_and_quick_routes() {
 
     // 3. Atalho /j/ deve rotear para o formato JSON
     let req_json = Request::builder()
-        .uri("/j/https://example.com/artigo")
+        .uri("/j/https://example.com")
         .body(Body::empty())
         .unwrap();
 

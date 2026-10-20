@@ -156,3 +156,47 @@ fn test_extractor_preserves_images_inside_chunk_divs() {
         "Markdown deve conter a imagem do chunk"
     );
 }
+
+#[test]
+fn test_extractor_promotes_lead_featured_figure_outside_article() {
+    let html = r#"<!DOCTYPE html>
+<html>
+<head><title>Artigo com Foto de Topo no Header</title></head>
+<body>
+<div class="mrf-article-body">
+    <section class="content--header">
+        <div class="content-top-image">
+            <figure class="content-featured-figure">
+                <img class="content-featured-image" src="https://s2-oglobo.glbimg.com/foto-capa.jpg" alt="Foto Destaque Capa" />
+                <figcaption>Foto Destaque Capa — Foto: Agência O Globo</figcaption>
+            </figure>
+        </div>
+    </section>
+    <div class="mc-article-body">
+        <article>
+            <h1>Artigo com Foto de Topo no Header</h1>
+            <p>Primeiro parágrafo do artigo com conteúdo relevante suficiente para o Readability eleger este bloco.</p>
+            <p>Segundo parágrafo detalhando o acontecimento e mantendo a densidade de texto do artigo intacta.</p>
+        </article>
+    </div>
+</div>
+</body>
+</html>"#;
+
+    let target_url = "https://oglobo.globo.com/politica/artigo-topo.ghtml";
+    let extracted = extractor::extract_and_sanitize(html, target_url)
+        .expect("Extração deve ocorrer com sucesso");
+
+    assert!(
+        extracted
+            .clean_html
+            .contains("https://s2-oglobo.glbimg.com/foto-capa.jpg"),
+        "HTML limpo deve incluir a imagem de destaque promovida do cabeçalho"
+    );
+
+    let md = formatter::format_markdown(&extracted).expect("Formatação deve ocorrer com sucesso");
+    assert!(
+        md.contains("https://s2-oglobo.glbimg.com/foto-capa.jpg"),
+        "Markdown deve conter a foto de destaque"
+    );
+}
