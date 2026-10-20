@@ -30,7 +30,10 @@ async fn healthz_handler() -> &'static str {
 }
 
 fn is_cli_client(headers: &HeaderMap) -> bool {
-    if let Some(ua) = headers.get(header::USER_AGENT).and_then(|h| h.to_str().ok()) {
+    if let Some(ua) = headers
+        .get(header::USER_AGENT)
+        .and_then(|h| h.to_str().ok())
+    {
         let ua_lower = ua.to_lowercase();
         if ua_lower.starts_with("curl/")
             || ua_lower.starts_with("wget/")
@@ -163,12 +166,18 @@ async fn process_article(
             .unwrap_or(false);
 
     if wants_zip {
-        let zip_bytes = assets::create_editorial_zip(&markdown, &article.assets)
-            .map_err(AppError::Internal)?;
+        let zip_bytes =
+            assets::create_editorial_zip(&markdown, &article.assets).map_err(AppError::Internal)?;
         let safe_slug: String = article
             .title
             .chars()
-            .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '_' })
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' {
+                    c
+                } else {
+                    '_'
+                }
+            })
             .collect();
         let filename = format!("{safe_slug}.zip");
         let disposition = format!("attachment; filename=\"{filename}\"");

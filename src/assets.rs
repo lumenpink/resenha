@@ -117,8 +117,8 @@ pub fn create_editorial_zip(
     let mut buffer = std::io::Cursor::new(Vec::new());
     {
         let mut zip = zip::ZipWriter::new(&mut buffer);
-        let options = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         // 1. main.md na raiz do ZIP
         zip.start_file("main.md", options)
@@ -131,7 +131,8 @@ pub fn create_editorial_zip(
             let path = format!("attachments/{}", asset.filename);
             zip.start_file(&path, options)
                 .map_err(|e| ResenhaError::Asset(format!("Erro ao criar {path} no ZIP: {e}")))?;
-            if let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(&asset.data_base64) {
+            if let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(&asset.data_base64)
+            {
                 zip.write_all(&bytes)
                     .map_err(|e| ResenhaError::Asset(format!("Erro ao escrever {path}: {e}")))?;
             }
