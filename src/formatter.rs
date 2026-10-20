@@ -201,7 +201,33 @@ pub fn render_home_page() -> &'static str {
 </html>"#
 }
 
-pub fn render_reading_page(article: &ExtractedArticle) -> String {
+pub fn markdown_to_html(md: &str) -> String {
+    use pulldown_cmark::{html, Options, Parser};
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_FOOTNOTES);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+    options.insert(Options::ENABLE_TASKLISTS);
+    let parser = Parser::new_ext(md, options);
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+    html_output
+}
+
+pub fn strip_frontmatter(md: &str) -> &str {
+    if let Some(stripped) = md.strip_prefix("---\n") {
+        if let Some(end_idx) = stripped.find("\n---\n") {
+            return &stripped[end_idx + 5..];
+        }
+    }
+    md
+}
+
+pub fn render_reading_page(
+    article: &ExtractedArticle,
+    md_content: &str,
+    fuxico_api_url: Option<&str>,
+) -> String {
     let title_escaped = html_escape(&article.title);
     let domain_escaped = html_escape(&article.domain);
     let source_escaped = html_escape(&article.source_url);
@@ -220,6 +246,15 @@ pub fn render_reading_page(article: &ExtractedArticle) -> String {
     } else {
         String::new()
     };
+
+    let fuxico_button = if fuxico_api_url.is_some() {
+        r#"<button id="btn-fuxicar" class="btn-action" onclick="fuxicarArtigo()" title="Publicar como Fuxico Doc no cofre">⚡ Fuxicar</button>"#
+    } else {
+        ""
+    };
+
+    let body_md = strip_frontmatter(md_content).trim();
+    let rendered_body = markdown_to_html(body_md);
 
     format!(
         r#"<!DOCTYPE html>
@@ -288,7 +323,7 @@ pub fn render_reading_page(article: &ExtractedArticle) -> String {
         }}
         .actions-bar {{
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             align-items: center;
         }}
         .btn-action {{
@@ -297,11 +332,23 @@ pub fn render_reading_page(article: &ExtractedArticle) -> String {
             padding: 0.35rem 0.65rem;
             border-radius: 4px;
             border: 1px solid var(--border);
+            background: transparent;
+            font-size: 0.85rem;
+            cursor: pointer;
             transition: all 0.15s;
         }}
         .btn-action:hover {{
             color: var(--text);
             border-color: var(--text);
+        }}
+        #btn-fuxicar {{
+            background: var(--text);
+            color: var(--bg);
+            border-color: var(--text);
+            font-weight: 600;
+        }}
+        #btn-fuxicar:hover {{
+            opacity: 0.85;
         }}
         article {{
             max-width: 68ch;
@@ -380,6 +427,7 @@ pub fn render_reading_page(article: &ExtractedArticle) -> String {
         <div class="top-bar-inner">
             <a href="/" class="brand">✂ resenha</a>
             <div class="actions-bar">
+                {fuxico_button}
                 <a href="{source_escaped}" target="_blank" rel="noopener noreferrer" class="btn-action" title="Abrir artigo original na fonte">↗ Original</a>
                 <a href="/?url={encoded_url}&format=md" class="btn-action" title="Baixar versão Markdown pura">⬇ Markdown</a>
                 <a href="/" class="btn-action" title="Destilar outro artigo">↩ Nova Resenha</a>
@@ -395,12 +443,40 @@ pub fn render_reading_page(article: &ExtractedArticle) -> String {
             </div>
         </header>
         <div class="content">
-            {}
+            {rendered_body}
         </div>
     </article>
+
+    <script>
+    async function fuxicarArtigo() {{
+        const btn = document.getElementById('btn-fuxicar');
+        if (!btn) return;
+        const orig = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = '⚡ Enviando...';
+        try {{
+            const target = new URL(window.location.href).searchParams.get('url');
+            if (!target) throw new Error('URL ausente');
+            const res = await fetch('/api/fuxicar?url=' + encodeURIComponent(target), {{ method: 'POST' }});
+            const data = await res.json();
+            if (data.short_url) {{
+                await navigator.clipboard.writeText(data.short_url);
+                alert('Fofoca publicada no Fuxico! Link copiado para a área de transferência:\n' + data.short_url);
+                btn.innerText = '✓ Fuxicado!';
+            }} else {{
+                alert('Erro ao fuxicar: ' + (data.error || 'Falha desconhecida'));
+                btn.innerText = orig;
+            }}
+        }} catch (err) {{
+            alert('Falha na comunicação: ' + err.message);
+            btn.innerText = orig;
+        }} finally {{
+            setTimeout(() => {{ btn.disabled = false; btn.innerText = orig; }}, 4000);
+        }}
+    }}
+    </script>
 </body>
-</html>"#,
-        article.clean_html
+</html>"#
     )
 }
 

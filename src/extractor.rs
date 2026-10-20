@@ -65,5 +65,6 @@ pub fn extract_and_sanitize(html: &str, url_str: &str) -> Result<ExtractedArticl
         author: None,
         clipped_at: chrono::Utc::now().to_rfc3339(),
         clean_html,
+        assets: Vec::new(),
     })
 }

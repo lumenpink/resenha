@@ -1,8 +1,10 @@
+pub mod assets;
 pub mod extractor;
 pub mod fetcher;
 pub mod formatter;
 pub mod server;
 
+pub use assets::ArticleAsset;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -17,6 +19,9 @@ pub enum ResenhaError {
     #[error("Falha na formatação de saída: {0}")]
     Formatting(String),
 
+    #[error("Falha no processamento de assets: {0}")]
+    Asset(String),
+
     #[error("URL inválida: {0}")]
     InvalidUrl(#[from] url::ParseError),
 }
@@ -29,6 +34,8 @@ pub struct ExtractedArticle {
     pub author: Option<String>,
     pub clipped_at: String,
     pub clean_html: String,
+    #[serde(default)]
+    pub assets: Vec<ArticleAsset>,
 }
 
 pub async fn process_url(url: &str) -> Result<String, ResenhaError> {

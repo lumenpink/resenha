@@ -47,6 +47,7 @@ fn test_formatter_generates_markdown_with_frontmatter_and_original_link() {
         author: Some("Lumen Pink".to_string()),
         clipped_at: "2026-10-19T14:45:00Z".to_string(),
         clean_html: "<h2>Pilares</h2><p>Texto de teste.</p><blockquote>Citação inspiradora</blockquote><p><a href=\"https://fuxico.lumen.pink\">Fuxico</a></p>".to_string(),
+        assets: Vec::new(),
     };
 
     let md =
@@ -170,9 +171,11 @@ fn test_formatter_renders_sovereign_reading_page() {
         author: Some("Lumen Pink".to_string()),
         clipped_at: "2026-10-19T14:45:00Z".to_string(),
         clean_html: "<p>Parágrafo destilado para leitura agradável.</p>".to_string(),
+        assets: Vec::new(),
     };
 
-    let html = formatter::render_reading_page(&extracted);
+    let md_content = "Parágrafo destilado para leitura agradável.";
+    let html = formatter::render_reading_page(&extracted, md_content, None);
 
     assert!(
         html.contains("<!DOCTYPE html>"),
