@@ -42,6 +42,48 @@ fn test_extractor_preserves_amp_images() {
 }
 
 #[test]
+fn test_extractor_preserves_nested_figures_with_captions() {
+    let html = r#"<!DOCTYPE html>
+<html>
+<head><title>Artigo com Figura Aninhada</title></head>
+<body>
+<article>
+<h1>Artigo com Figura Aninhada</h1>
+<p>Este é o primeiro parágrafo relevante da matéria jornalística para dar densidade textual suficiente ao teste.</p>
+<div class="content-media">
+    <figure class="content-media__container">
+        <!-- Line Break for lightbox caption -->
+        <figure>
+            <amp-img src="https://s2-g1.glbimg.com/marco-nanini.jpg" alt="Marco Nanini em Fim de Partida" width="1920" height="1080" layout="responsive"></amp-img>
+            <figcaption hidden>1 de 3 Marco Nanini em Fim de Partida — Foto: Divulgação</figcaption>
+        </figure>
+        <figcaption class="content-media__description">Marco Nanini em Fim de Partida — Foto: Divulgação</figcaption>
+    </figure>
+</div>
+<p>Segundo parágrafo detalhando o acontecimento para garantir que o algoritmo Readability mantenha o artigo completo.</p>
+</article>
+</body>
+</html>"#;
+
+    let target_url = "https://g1.globo.com/google/amp/artigo.ghtml";
+    let extracted = extractor::extract_and_sanitize(html, target_url)
+        .expect("Extração deve ocorrer com sucesso");
+
+    assert!(
+        extracted
+            .clean_html
+            .contains("https://s2-g1.glbimg.com/marco-nanini.jpg"),
+        "HTML limpo deve preservar a imagem aninhada do G1"
+    );
+
+    let md = formatter::format_markdown(&extracted).expect("Formatação deve ocorrer com sucesso");
+    assert!(
+        md.contains("https://s2-g1.glbimg.com/marco-nanini.jpg"),
+        "Markdown deve conter o link da imagem aninhada"
+    );
+}
+
+#[test]
 fn test_extractor_promotes_lazy_load_attributes() {
     let html = r#"<!DOCTYPE html>
 <html>

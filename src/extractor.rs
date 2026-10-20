@@ -21,6 +21,31 @@ pub fn preprocess_html(html: &str) -> String {
             .to_string();
     }
 
+    // 3. Aplanar figuras duplamente aninhadas (<figure><figure><img ...></figure></figure>)
+    if let Ok(nested_fig_re) = regex::Regex::new(
+        r#"(?is)<figure[^>]*>\s*(?:<!--.*?-->\s*)?<figure[^>]*>\s*(<img[^>]+>).*?<figcaption[^>]*>(.*?)</figcaption>\s*</figure>\s*(?:<figcaption[^>]*>.*?</figcaption>\s*)?</figure>"#,
+    ) {
+        processed = nested_fig_re
+            .replace_all(&processed, "<figure>$1<figcaption>$2</figcaption></figure>")
+            .to_string();
+    }
+
+    // 4. Desenvelopar divs com 'content-media' que envolvem <figure>
+    // O Readability avalia <div> com is_useless e descarta divs contendo 'media' onde img_count > para_count.
+    // Ao desenvelopar a div e manter apenas o <figure>, o Readability preserva a imagem perfeitamente.
+    if let Ok(unwrap_media_re) = regex::Regex::new(
+        r#"(?is)<div\b[^>]*class\s*=\s*["'][^"']*\b(?:content-media|content-figure)\b[^"']*["'][^>]*>\s*(<figure\b.*?</figure>)\s*</div>"#,
+    ) {
+        processed = unwrap_media_re.replace_all(&processed, "$1").to_string();
+    }
+
+    // 5. Desarmar classes remanescentes com 'media'
+    if let Ok(media_class_re) = regex::Regex::new(r#"(?i)\bcontent-media\b"#) {
+        processed = media_class_re
+            .replace_all(&processed, "content-figure")
+            .to_string();
+    }
+
     processed
 }
 
