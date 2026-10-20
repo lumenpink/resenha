@@ -23,8 +23,10 @@ pub async fn extract_and_download_assets(
     let mut assets = Vec::new();
     let mut rewritten_markdown = markdown.to_string();
 
-    // Regex para capturar ![alt](url)
-    let re = match regex::Regex::new(r"!\[([^\]]*)\]\((https?://[^)\s]+)(?:\s+[^)]+)?\)") {
+    // Regex para capturar ![alt](url), suportando parênteses escapados dentro da URL (ex.: filters:gifv\(\):strip_icc\(\))
+    let re = match regex::Regex::new(
+        r"!\[([^\]]*)\]\((https?://(?:\\\(|\\\)|[^)\s])+)(?:\s+[^)]+)?\)",
+    ) {
         Ok(r) => r,
         Err(_) => return Ok((rewritten_markdown, assets)),
     };
@@ -38,12 +40,13 @@ pub async fn extract_and_download_assets(
             None => continue,
         };
         let alt_text = caps.get(1).map(|m| m.as_str()).unwrap_or("");
-        let original_url = match caps.get(2) {
+        let raw_url = match caps.get(2) {
             Some(m) => m.as_str(),
             None => continue,
         };
+        let original_url = raw_url.replace(r"\(", "(").replace(r"\)", ")");
 
-        let resolved_url = match base_url.join(original_url) {
+        let resolved_url = match base_url.join(&original_url) {
             Ok(u) => u.to_string(),
             Err(_) => original_url.to_string(),
         };

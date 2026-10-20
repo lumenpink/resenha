@@ -39,7 +39,23 @@ pub fn preprocess_html(html: &str) -> String {
         processed = unwrap_media_re.replace_all(&processed, "$1").to_string();
     }
 
-    // 5. Desarmar classes remanescentes com 'media'
+    // 5. Desenvelopar divs externas que envolvem exclusivamente um <figure>
+    // Portais como G1 encapsulam cada bloco em <div id="chunk-...">. O Readability considera
+    // qualquer <div> contendo imagens e sem parágrafos como lixo (scorer::is_useless).
+    // Ao desenvelopar a div e expor o <figure>, o Readability preserva a imagem no artigo.
+    if let Ok(unwrap_div_fig_re) =
+        regex::Regex::new(r#"(?is)<div\b[^>]*>\s*(<figure\b.*?</figure>)\s*</div>"#)
+    {
+        for _ in 0..5 {
+            let replaced = unwrap_div_fig_re.replace_all(&processed, "$1").to_string();
+            if replaced == processed {
+                break;
+            }
+            processed = replaced;
+        }
+    }
+
+    // 6. Desarmar classes remanescentes com 'media'
     if let Ok(media_class_re) = regex::Regex::new(r#"(?i)\bcontent-media\b"#) {
         processed = media_class_re
             .replace_all(&processed, "content-figure")

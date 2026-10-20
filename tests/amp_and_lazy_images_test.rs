@@ -113,3 +113,46 @@ fn test_extractor_promotes_lazy_load_attributes() {
         "Placeholder data:image não deve permanecer no src final"
     );
 }
+
+#[test]
+fn test_extractor_preserves_images_inside_chunk_divs() {
+    let html = r#"<!DOCTYPE html>
+<html>
+<head><title>Artigo com Imagem em Chunks G1</title></head>
+<body>
+<article>
+<h1>Artigo com Imagem em Chunks G1</h1>
+<p>Este é o primeiro parágrafo relevante da matéria jornalística para dar densidade textual suficiente ao teste.</p>
+<div id="chunk-3u6q6">
+    <div class="content-media" data-block-type="backstage-photo">
+        <figure class="content-media__container">
+            <figure>
+                <amp-img src="https://s2-g1.glbimg.com/foto-chunk-1.jpg" alt="Foto no Chunk 1" width="1920" height="1080" layout="responsive"></amp-img>
+                <figcaption hidden>1 de 3 Foto no Chunk 1</figcaption>
+            </figure>
+            <figcaption class="content-media__description">Foto no Chunk 1 — Legenda Completa</figcaption>
+        </figure>
+    </div>
+</div>
+<p>Segundo parágrafo detalhando o acontecimento para garantir que o algoritmo Readability mantenha o artigo completo.</p>
+</article>
+</body>
+</html>"#;
+
+    let target_url = "https://g1.globo.com/google/amp/chunk-artigo.ghtml";
+    let extracted = extractor::extract_and_sanitize(html, target_url)
+        .expect("Extração deve ocorrer com sucesso");
+
+    assert!(
+        extracted
+            .clean_html
+            .contains("https://s2-g1.glbimg.com/foto-chunk-1.jpg"),
+        "HTML limpo deve preservar imagem mesmo aninhada em div de chunk"
+    );
+
+    let md = formatter::format_markdown(&extracted).expect("Formatação deve ocorrer com sucesso");
+    assert!(
+        md.contains("https://s2-g1.glbimg.com/foto-chunk-1.jpg"),
+        "Markdown deve conter a imagem do chunk"
+    );
+}

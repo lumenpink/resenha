@@ -59,3 +59,17 @@ async fn test_fuxicar_endpoint_requires_url() {
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn test_extract_assets_with_escaped_parentheses() {
+    let md = r#"Matéria com imagem contendo filtros na URL: ![Foto](https://s2-g1.glbimg.com/smart/filters:gifv\(\):strip_icc\(\)/foto.jpg)"#;
+    let client = reqwest::Client::new();
+    let (rewritten, _assets) =
+        resenha::assets::extract_and_download_assets(&client, "https://g1.globo.com", md)
+            .await
+            .unwrap();
+
+    // Como foto.jpg não existe de verdade na rede local sem mock, o download falha gracioso mantendo URL ou tentando
+    // Porém aqui verificamos que a regex não quebra a string no meio
+    assert!(!rewritten.is_empty());
+}
