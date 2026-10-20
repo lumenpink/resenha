@@ -26,6 +26,7 @@ O `resenha` foi projetado para operar com dupla vocação:
 
 ### 2.1. O que faz parte do escopo:
 - **Extração Heurística de Conteúdo**: Avaliação da densidade textual do DOM usando a heurística Mozilla Readability em Rust puro para identificar título, autor e corpo principal.
+- **Normalização Prévia de Mídia e DOM**: Pré-processamento antes da extração para normalizar tags `<amp-img>` em tags `<img>` padrão e promover atributos de lazy-loading (`data-src`, `data-original`, `data-lazy-src`, `srcset`) para `src`, garantindo que imagens de páginas AMP e sites modernos não sejam expurgadas.
 - **Sanitização Estrita (Anti-XSS e Anti-Tracking)**: Remoção sistemática de `<script>`, `<style>`, `<iframe>`, `<object>`, `<embed>`, `<form>`, manipuladores de eventos JavaScript (`onload`, `onclick`), além de limpeza de parâmetros de espionagem comercial em URLs (`utm_*`, `fbclid`, `gclid`).
 - **Conversão para CommonMark Estrito**: Transformação do HTML limpo para Markdown com blocos de citação, cabeçalhos, código e listas preservados.
 - **Preservação Canônica da Fonte**: Injeção obrigatória do link da fonte original tanto no Frontmatter YAML quanto em bloco visual de destaque no início do Markdown.
