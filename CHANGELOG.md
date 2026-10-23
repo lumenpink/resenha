@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Configuração de `[profile.release]` com LTO e strip, e linking estático `+crt-static` para musl libc (closes #11).
 - Desenvelopamento de `<div>` externas e tratamento de URLs com parênteses (closes #7).
 - Inlining soberano de imagens em base64 na leitura web e tela 404/502 tipográfica (closes #8).
 - Promoção de figuras de destaque de cabeçalho em portais como O Globo (closes #8).
