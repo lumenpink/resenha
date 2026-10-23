@@ -43,6 +43,12 @@ resenha serve --port 3030
 
 # Iniciar via Docker Compose
 docker compose up -d
+
+# Compilação otimizada com LTO e strip
+cargo build --release
+
+# Compilação estática universal (static-pie) contra musl libc
+cargo build --release --target x86_64-unknown-linux-musl
 ```
 
 ---
