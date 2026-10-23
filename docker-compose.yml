@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: lumenpink/resenha:latest
+    image: git.2lp.in/lumen/resenha:latest
     container_name: resenha
     restart: unless-stopped
     ports:
