@@ -32,7 +32,9 @@ fn test_g1_full_article_extraction_not_truncated() {
         "Parágrafos intermediários devem estar presentes no conteúdo extraído"
     );
     assert!(
-        article.clean_html.contains("pronta para averiguação judicial"),
+        article
+            .clean_html
+            .contains("pronta para averiguação judicial"),
         "O último parágrafo deve estar presente no conteúdo extraído"
     );
 }

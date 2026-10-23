@@ -55,7 +55,47 @@ pub fn preprocess_html(html: &str) -> String {
         }
     }
 
-    // 6. Desarmar classes remanescentes com 'media'
+    // 6. Neutralizar divs de paywall do G1/Globo ('wall', 'protected-content')
+    // O G1 isola o texto pós-primeiro-parágrafo dentro de <div class="wall protected-content">.
+    // Convertendo a classe para 'article-body', o Readability reconhece como container positivo.
+    if let Ok(wall_re) = regex::Regex::new(
+        r#"(?i)<div\b([^>]*)class\s*=\s*["'][^"']*\b(?:wall|protected-content)\b[^"']*["']"#,
+    ) {
+        processed = wall_re
+            .replace_all(&processed, r#"<div$1class="article-body""#)
+            .to_string();
+    }
+
+    // 7. Desenvelopar divs de coluna de texto ('content-text') e blocos ('chunk-*') do G1
+    // O G1 divide cada parágrafo em seu próprio chunk (<div id="chunk-XXXX"><div class="mc-column content-text active-extra-styles"><p>...</p></div></div>).
+    // Como o Readability pontua apenas parent e parent.parent, divs isoladas não acumulam a pontuação do artigo inteiro.
+    // Desenvelopar esses wrappers expõe os <p> diretamente sob o container principal.
+    if let Ok(unwrap_content_text_re) = regex::Regex::new(
+        r#"(?is)<div\b[^>]*class\s*=\s*["'][^"']*\bcontent-text\b[^"']*["'][^>]*>\s*(<p\b.*?</p>)\s*</div>"#,
+    ) {
+        for _ in 0..5 {
+            let replaced = unwrap_content_text_re
+                .replace_all(&processed, "$1")
+                .to_string();
+            if replaced == processed {
+                break;
+            }
+            processed = replaced;
+        }
+    }
+    if let Ok(unwrap_chunk_re) = regex::Regex::new(
+        r#"(?is)<div\b[^>]*id\s*=\s*["']chunk-[^"']*["'][^>]*>\s*(<(?:p|figure)\b.*?</(?:p|figure)>)\s*</div>"#,
+    ) {
+        for _ in 0..5 {
+            let replaced = unwrap_chunk_re.replace_all(&processed, "$1").to_string();
+            if replaced == processed {
+                break;
+            }
+            processed = replaced;
+        }
+    }
+
+    // 8. Desarmar classes remanescentes com 'media'
     if let Ok(media_class_re) = regex::Regex::new(r#"(?i)\bcontent-media\b"#) {
         processed = media_class_re
             .replace_all(&processed, "content-figure")
