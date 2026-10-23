@@ -1,7 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
-WORKFLOW="/home/lumen/src/resenha/.forgejo/workflows/ci.yaml"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WORKFLOW="${ROOT_DIR}/.forgejo/workflows/ci.yaml"
 
 echo "=== [TEST] Auditoria do Workflow de CD Soberano (resenha) ==="
 
