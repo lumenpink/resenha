@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Remoção de campo `permissions:` incompatível com Forgejo Actions (closes #13).
+
 ### Fixed
 - Configuração de `[profile.release]` com LTO e strip, e linking estático `+crt-static` para musl libc (closes #11).
 - Desenvelopamento de `<div>` externas e tratamento de URLs com parênteses (closes #7).
