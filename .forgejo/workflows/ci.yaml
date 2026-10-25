@@ -56,24 +56,17 @@ jobs:
 
       - name: "Build local Docker Image"
         run: |
-          OLD_IMAGE_ID=$(docker inspect --format='{{.Id}}' gambi.2lp.in/lumen/resenha:latest 2>/dev/null || docker inspect --format='{{.Id}}' git.2lp.in/lumen/resenha:latest 2>/dev/null || docker inspect --format='{{.Id}}' lumenpink/resenha:latest 2>/dev/null || true)
+          OLD_IMAGE_ID=$(docker inspect --format='{{.Id}}' gambi.2lp.in/lumen/resenha:latest 2>/dev/null || true)
           echo "OLD_IMAGE_ID=$OLD_IMAGE_ID" >> $GITHUB_ENV
-          docker build -t gambi.2lp.in/lumen/resenha:latest -t git.2lp.in/lumen/resenha:latest -t lumenpink/resenha:latest -f ./Dockerfile .
+          docker build -t gambi.2lp.in/lumen/resenha:latest -f ./Dockerfile .
 
-      - name: "Login to Docker Hub (Registry Backup)"
-        if: env.DOCKER_PASSWORD != ''
+      - name: "Push Image to Sovereign Registry (gambi.2lp.in)"
+        if: env.GAMBI_TOKEN != ''
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          GAMBI_TOKEN: ${{ secrets.GAMBI_2LP_IN_TOKEN || secrets.GIT_2LP_TOKEN }}
         run: |
-          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-
-      - name: "Push Image to Docker Hub (Registry Backup)"
-        if: env.DOCKER_PASSWORD != ''
-        env:
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          docker push lumenpink/resenha:latest
+          echo "$GAMBI_TOKEN" | docker login -u lumen --password-stdin gambi.2lp.in
+          docker push gambi.2lp.in/lumen/resenha:latest
 
       - name: "Deploy Locally on obizero (Direct Socket)"
         run: |
@@ -98,8 +91,6 @@ jobs:
             echo "✘ [FALHA] Container não estabilizou no prazo limite! Acionando Rollback..."
             if [ -n "$OLD_IMAGE_ID" ]; then
               docker tag "$OLD_IMAGE_ID" gambi.2lp.in/lumen/resenha:latest
-              docker tag "$OLD_IMAGE_ID" git.2lp.in/lumen/resenha:latest
-              docker tag "$OLD_IMAGE_ID" lumenpink/resenha:latest
               docker compose -f /home/lumen/stacks/resenha/compose.yml up -d --no-build resenha
               echo "✔ Rollback concluído para imagem anterior $OLD_IMAGE_ID."
             fi
