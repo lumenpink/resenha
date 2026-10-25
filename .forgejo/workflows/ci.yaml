@@ -15,6 +15,8 @@ jobs:
   check-and-test:
     name: "Rust — Checks & Unit Tests"
     runs-on: ubuntu-latest
+    container:
+      image: gambi.2lp.in/lumen/gost-ci-cross:latest
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
@@ -54,9 +56,9 @@ jobs:
 
       - name: "Build local Docker Image"
         run: |
-          OLD_IMAGE_ID=$(docker inspect --format='{{.Id}}' git.2lp.in/lumen/resenha:latest 2>/dev/null || docker inspect --format='{{.Id}}' lumenpink/resenha:latest 2>/dev/null || true)
+          OLD_IMAGE_ID=$(docker inspect --format='{{.Id}}' gambi.2lp.in/lumen/resenha:latest 2>/dev/null || docker inspect --format='{{.Id}}' git.2lp.in/lumen/resenha:latest 2>/dev/null || docker inspect --format='{{.Id}}' lumenpink/resenha:latest 2>/dev/null || true)
           echo "OLD_IMAGE_ID=$OLD_IMAGE_ID" >> $GITHUB_ENV
-          docker build -t git.2lp.in/lumen/resenha:latest -t lumenpink/resenha:latest -f ./Dockerfile .
+          docker build -t gambi.2lp.in/lumen/resenha:latest -t git.2lp.in/lumen/resenha:latest -t lumenpink/resenha:latest -f ./Dockerfile .
 
       - name: "Login to Docker Hub (Registry Backup)"
         if: env.DOCKER_PASSWORD != ''
@@ -95,6 +97,7 @@ jobs:
           if [ $SUCCESS -ne 1 ]; then
             echo "✘ [FALHA] Container não estabilizou no prazo limite! Acionando Rollback..."
             if [ -n "$OLD_IMAGE_ID" ]; then
+              docker tag "$OLD_IMAGE_ID" gambi.2lp.in/lumen/resenha:latest
               docker tag "$OLD_IMAGE_ID" git.2lp.in/lumen/resenha:latest
               docker tag "$OLD_IMAGE_ID" lumenpink/resenha:latest
               docker compose -f /home/lumen/stacks/resenha/compose.yml up -d --no-build resenha
