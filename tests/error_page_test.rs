@@ -8,6 +8,7 @@ fn test_render_error_page_contains_styling_and_status() {
         "Artigo Não Encontrado",
         "Não foi possível encontrar a página requisitada na fonte original.",
         Some("HTTP status client error (404 Not Found)"),
+        false, // permanente
     );
 
     assert!(html.contains("404"), "Deve conter código de status");
@@ -27,6 +28,39 @@ fn test_render_error_page_contains_styling_and_status() {
     assert!(
         html.contains("Voltar à página inicial"),
         "Deve conter botão/link de retorno"
+    );
+    assert!(
+        html.contains("Tentar novamente"),
+        "Deve conter botão de tentar novamente"
+    );
+    assert!(
+        html.contains("location.reload()"),
+        "Deve conter ação de reload na tentativa"
+    );
+    assert!(
+        html.contains("Bloqueio Definitivo") || html.contains("Erro Permanente"),
+        "Deve identificar erro permanente"
+    );
+}
+
+#[test]
+fn test_render_error_page_transient_error() {
+    let html = formatter::render_error_page(
+        StatusCode::GATEWAY_TIMEOUT,
+        "Tempo Limite Esgotado",
+        "A conexão com o servidor de origem expirou antes de receber a resposta.",
+        Some("operation timed out"),
+        true, // temporário / transitório
+    );
+
+    assert!(html.contains("504"), "Deve conter código de status");
+    assert!(
+        html.contains("Instabilidade Temporária"),
+        "Deve identificar erro transitório"
+    );
+    assert!(
+        html.contains("Tentar novamente"),
+        "Deve conter botão de tentar novamente"
     );
 }
 
@@ -57,4 +91,5 @@ async fn test_invalid_path_returns_404_html() {
     let body_str = String::from_utf8_lossy(&bytes);
     assert!(body_str.contains("404"));
     assert!(body_str.contains("✂ resenha"));
+    assert!(body_str.contains("Tentar novamente"));
 }
