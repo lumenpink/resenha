@@ -9,11 +9,11 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
-static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+static ENV_MUTEX: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[tokio::test]
 async fn test_fetcher_fallback_when_origin_returns_403() {
-    let _guard = ENV_MUTEX.lock().unwrap();
+    let _guard = ENV_MUTEX.lock().await;
 
     let fallback_counter = Arc::new(AtomicUsize::new(0));
     let counter_clone = fallback_counter.clone();
@@ -70,7 +70,7 @@ async fn test_fetcher_fallback_when_origin_returns_403() {
 
 #[tokio::test]
 async fn test_fetcher_fails_when_fallback_disabled() {
-    let _guard = ENV_MUTEX.lock().unwrap();
+    let _guard = ENV_MUTEX.lock().await;
 
     let mock_app = Router::new().route(
         "/bloqueada-sem-fallback",
@@ -97,7 +97,7 @@ async fn test_fetcher_fails_when_fallback_disabled() {
 
 #[tokio::test]
 async fn test_fetcher_origin_404_does_not_trigger_fallback() {
-    let _guard = ENV_MUTEX.lock().unwrap();
+    let _guard = ENV_MUTEX.lock().await;
 
     let fallback_counter = Arc::new(AtomicUsize::new(0));
     let counter_clone = fallback_counter.clone();
@@ -142,7 +142,7 @@ async fn test_fetcher_origin_404_does_not_trigger_fallback() {
 
 #[tokio::test]
 async fn test_fetcher_origin_403_and_fallback_fails() {
-    let _guard = ENV_MUTEX.lock().unwrap();
+    let _guard = ENV_MUTEX.lock().await;
 
     let mock_app = Router::new()
         .route(
@@ -152,11 +152,7 @@ async fn test_fetcher_origin_403_and_fallback_fails() {
         .route(
             "/fallback-com-falha/{*rest}",
             get(|| async {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Fallback Server Error",
-                )
-                    .into_response()
+                (StatusCode::INTERNAL_SERVER_ERROR, "Fallback Server Error").into_response()
             }),
         );
 
