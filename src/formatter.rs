@@ -232,10 +232,18 @@ pub fn render_error_page(
     title: &str,
     message: &str,
     details: Option<&str>,
+    is_transient: bool,
 ) -> String {
     let title_escaped = html_escape(title);
     let message_escaped = html_escape(message);
     let status_code = status.as_u16();
+    let (nature_class, nature_label) = if is_transient {
+        ("transient", "Instabilidade Temporária")
+    } else {
+        ("permanent", "Bloqueio Definitivo")
+    };
+    let nature_badge = format!(r#"<div class="status-nature {nature_class}">{nature_label}</div>"#);
+
     let details_section = if let Some(d) = details.filter(|s| !s.is_empty()) {
         let d_escaped = html_escape(d);
         format!(
@@ -319,6 +327,13 @@ pub fn render_error_page(
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
             text-align: center;
         }}
+        .badges-row {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }}
         .status-badge {{
             display: inline-block;
             background: var(--accent);
@@ -328,7 +343,24 @@ pub fn render_error_page(
             font-weight: 700;
             padding: 0.25rem 0.65rem;
             border-radius: 4px;
-            margin-bottom: 1.25rem;
+        }}
+        .status-nature {{
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }}
+        .status-nature.transient {{
+            background: #d97706;
+            color: #ffffff;
+        }}
+        .status-nature.permanent {{
+            background: #736b63;
+            color: #ffffff;
         }}
         .error-title {{
             font-family: var(--font-serif);
@@ -370,22 +402,43 @@ pub fn render_error_page(
         }}
         .actions {{
             display: flex;
-            gap: 1rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
             justify-content: center;
         }}
-        .btn-home {{
-            display: inline-block;
+        .btn-retry {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
             background: var(--text);
             color: var(--bg);
+            border: none;
+            padding: 0.8rem 1.4rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }}
+        .btn-retry:hover {{
+            opacity: 0.85;
+        }}
+        .btn-home {{
+            display: inline-flex;
+            align-items: center;
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
             text-decoration: none;
             padding: 0.8rem 1.4rem;
             font-size: 0.95rem;
             font-weight: 600;
             border-radius: 6px;
-            transition: opacity 0.15s;
+            transition: background 0.15s, border-color 0.15s;
         }}
         .btn-home:hover {{
-            opacity: 0.9;
+            background: var(--bg);
+            border-color: var(--accent);
         }}
         .footer-note {{
             margin-top: 1.5rem;
@@ -400,19 +453,23 @@ pub fn render_error_page(
     <div class="container">
         <div class="header">
             <a href="/" class="logo">✂ resenha</a>
-            <div class="tagline">destilação tipográfica soberana na borda</div>
+            <div class="tagline">destilação tipográfica na borda</div>
         </div>
         <div class="card">
-            <div class="status-badge">{status_code}</div>
+            <div class="badges-row">
+                <div class="status-badge">{status_code}</div>
+                {nature_badge}
+            </div>
             <h1 class="error-title">{title_escaped}</h1>
             <p class="error-message">{message_escaped}</p>
             {details_section}
             <div class="actions">
+                <button type="button" class="btn-retry" onclick="window.location.reload()">↻ Tentar novamente</button>
                 <a href="/" class="btn-home">← Voltar à página inicial</a>
             </div>
         </div>
         <div class="footer-note">
-            <span>2LP // A Banca &bull; soberania da leitura</span>
+            <span>2LP // A Banca &bull; autonomia da leitura</span>
         </div>
     </div>
 </body>

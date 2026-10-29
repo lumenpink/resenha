@@ -418,6 +418,7 @@ impl IntoResponse for AppError {
                             "Requisição Inválida",
                             &message,
                             None,
+                            false,
                         )),
                     )
                         .into_response()
@@ -438,6 +439,7 @@ impl IntoResponse for AppError {
                             "Página Não Encontrada",
                             &message,
                             None,
+                            false,
                         )),
                     )
                         .into_response()
@@ -446,26 +448,57 @@ impl IntoResponse for AppError {
                 }
             }
             AppError::Internal { error, wants_html } => {
-                let (status, title, msg) = match &error {
+                let (status, title, msg, is_transient) = match &error {
                     ResenhaError::Network(reqwest_err) => {
-                        if let Some(status_code) = reqwest_err.status() {
+                        if reqwest_err.is_timeout() {
+                            (
+                                StatusCode::GATEWAY_TIMEOUT,
+                                "Tempo Limite Esgotado",
+                                "A conexão com o servidor de origem expirou antes de receber a resposta (Timeout). Pode se tratar de uma oscilação momentânea na rede.",
+                                true,
+                            )
+                        } else if reqwest_err.is_connect() {
+                            (
+                                StatusCode::BAD_GATEWAY,
+                                "Instabilidade de Conexão",
+                                "Não foi possível estabelecer contato com o servidor de destino. A rede pode estar oscilando.",
+                                true,
+                            )
+                        } else if let Some(status_code) = reqwest_err.status() {
                             if status_code == reqwest::StatusCode::NOT_FOUND {
                                 (
                                     StatusCode::NOT_FOUND,
                                     "Artigo Não Encontrado na Origem",
                                     "O servidor de origem informou que a matéria ou URL requisitada não existe (HTTP 404).",
+                                    false,
                                 )
                             } else if status_code == reqwest::StatusCode::FORBIDDEN {
                                 (
                                     StatusCode::FORBIDDEN,
                                     "Acesso Restrito na Origem",
-                                    "O servidor de origem bloqueou a leitura da página (HTTP 403 / Paywall).",
+                                    "O portal de origem bloqueou a leitura da página (HTTP 403 / Paywall fechado ou restrição anti-automação). Tentar novamente neste momento não modificará a resposta.",
+                                    false,
+                                )
+                            } else if status_code == reqwest::StatusCode::UNAUTHORIZED {
+                                (
+                                    StatusCode::UNAUTHORIZED,
+                                    "Autenticação Exigida na Origem",
+                                    "O portal de origem exige credenciais de autenticação (HTTP 401).",
+                                    false,
+                                )
+                            } else if status_code.is_server_error() {
+                                (
+                                    StatusCode::BAD_GATEWAY,
+                                    "Instabilidade no Servidor de Origem",
+                                    "O servidor de origem retornou um erro interno temporário. Pode ser uma falha passageira.",
+                                    true,
                                 )
                             } else {
                                 (
                                     StatusCode::BAD_GATEWAY,
                                     "Falha de Comunicação com a Origem",
                                     "Não foi possível obter a página a partir do servidor de origem.",
+                                    true,
                                 )
                             }
                         } else {
@@ -473,6 +506,7 @@ impl IntoResponse for AppError {
                                 StatusCode::BAD_GATEWAY,
                                 "Falha de Rede",
                                 "Não foi possível estabelecer conexão de rede com o servidor de destino.",
+                                true,
                             )
                         }
                     }
@@ -480,11 +514,13 @@ impl IntoResponse for AppError {
                         StatusCode::BAD_REQUEST,
                         "Endereço Inválido",
                         "O endereço fornecido não é uma URL HTTP/HTTPS válida.",
+                        false,
                     ),
                     _ => (
                         StatusCode::UNPROCESSABLE_ENTITY,
                         "Erro de Processamento",
                         "Não foi possível extrair e sanitizar o conteúdo desta página.",
+                        false,
                     ),
                 };
 
@@ -497,6 +533,7 @@ impl IntoResponse for AppError {
                             title,
                             msg,
                             Some(&err_string),
+                            is_transient,
                         )),
                     )
                         .into_response()

@@ -9,8 +9,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
+static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[tokio::test]
 async fn test_fetcher_fallback_when_origin_returns_403() {
+    let _guard = ENV_MUTEX.lock().unwrap();
+
     let fallback_counter = Arc::new(AtomicUsize::new(0));
     let counter_clone = fallback_counter.clone();
 
@@ -69,6 +73,8 @@ async fn test_fetcher_fallback_when_origin_returns_403() {
 
 #[tokio::test]
 async fn test_fetcher_fails_when_fallback_disabled() {
+    let _guard = ENV_MUTEX.lock().unwrap();
+
     let mock_app = Router::new().route(
         "/bloqueada-sem-fallback",
         get(|| async { (StatusCode::FORBIDDEN, "Access Denied").into_response() }),
