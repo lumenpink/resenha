@@ -51,6 +51,13 @@ cargo build --release
 cargo build --release --target x86_64-unknown-linux-musl
 ```
 
+### Variáveis de Ambiente
+
+* `RESENHA_ENABLE_FALLBACK`: Ativa o fallback de extração quando a origem responder 403/401 (`true` por padrão).
+* `RESENHA_FALLBACK_URL`: Template do resolvedor de fallback (padrão: `https://r.jina.ai/{url}`).
+* `RESENHA_TIMEOUT_SECS`: Tempo limite de requisições em segundos (padrão: 15s).
+* `DOWNLOAD_ASSETS`: Baixa e embute imagens locais em base64 (`true` por padrão).
+
 ---
 
 ## 3. Formato do Markdown Gerado

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Cabeçalhos de navegador moderno no cliente HTTP nativo do fetcher (#18).
+- Mecanismo de fallback de extração configurável (`RESENHA_FALLBACK_URL`, `RESENHA_ENABLE_FALLBACK`) para portais protegidos por WAF (#18).
+- Ação interativa de retry direto na página de erro tipográfica (#18).
+- Distinção visual e didática entre erros transitórios e bloqueios permanentes (#18).
+
 ### Changed
 - Remoção de campo `permissions:` incompatível com Forgejo Actions (closes #13).
 
