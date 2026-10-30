@@ -11,6 +11,32 @@ use tokio::net::TcpListener;
 
 static ENV_MUTEX: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
+struct ScopedEnv {
+    vars: Vec<(&'static str, Option<String>)>,
+}
+
+impl ScopedEnv {
+    fn new(vars: &[(&'static str, &str)]) -> Self {
+        let mut saved = Vec::new();
+        for (k, v) in vars {
+            saved.push((*k, std::env::var(k).ok()));
+            std::env::set_var(k, v);
+        }
+        Self { vars: saved }
+    }
+}
+
+impl Drop for ScopedEnv {
+    fn drop(&mut self) {
+        for (k, prev) in &self.vars {
+            match prev {
+                Some(v) => std::env::set_var(k, v),
+                None => std::env::remove_var(k),
+            }
+        }
+    }
+}
+
 #[tokio::test]
 async fn test_fetcher_fallback_when_origin_returns_403() {
     let _guard = ENV_MUTEX.lock().await;
@@ -54,8 +80,12 @@ async fn test_fetcher_fallback_when_origin_returns_403() {
     let origin_url = format!("http://{addr}/bloqueada");
     let fallback_url_template = format!("http://{addr}/fallback/{{url}}");
 
-    std::env::set_var("RESENHA_FALLBACK_URL", fallback_url_template);
-    std::env::set_var("RESENHA_ENABLE_FALLBACK", "true");
+    let _env = ScopedEnv::new(&[
+        ("no_proxy", "127.0.0.1,localhost"),
+        ("NO_PROXY", "127.0.0.1,localhost"),
+        ("RESENHA_FALLBACK_URL", &fallback_url_template),
+        ("RESENHA_ENABLE_FALLBACK", "true"),
+    ]);
 
     let result = resenha::fetcher::fetch_html(&origin_url).await;
     assert!(
@@ -86,7 +116,11 @@ async fn test_fetcher_fails_when_fallback_disabled() {
 
     let origin_url = format!("http://{addr}/bloqueada-sem-fallback");
 
-    std::env::set_var("RESENHA_ENABLE_FALLBACK", "false");
+    let _env = ScopedEnv::new(&[
+        ("no_proxy", "127.0.0.1,localhost"),
+        ("NO_PROXY", "127.0.0.1,localhost"),
+        ("RESENHA_ENABLE_FALLBACK", "false"),
+    ]);
 
     let result = resenha::fetcher::fetch_html(&origin_url).await;
     assert!(
@@ -128,8 +162,12 @@ async fn test_fetcher_origin_404_does_not_trigger_fallback() {
     let origin_url = format!("http://{addr}/nao-existe");
     let fallback_url_template = format!("http://{addr}/fallback/{{url}}");
 
-    std::env::set_var("RESENHA_FALLBACK_URL", fallback_url_template);
-    std::env::set_var("RESENHA_ENABLE_FALLBACK", "true");
+    let _env = ScopedEnv::new(&[
+        ("no_proxy", "127.0.0.1,localhost"),
+        ("NO_PROXY", "127.0.0.1,localhost"),
+        ("RESENHA_FALLBACK_URL", &fallback_url_template),
+        ("RESENHA_ENABLE_FALLBACK", "true"),
+    ]);
 
     let result = resenha::fetcher::fetch_html(&origin_url).await;
     assert!(result.is_err(), "404 deve propagar erro sem fallback");
@@ -166,8 +204,12 @@ async fn test_fetcher_origin_403_and_fallback_fails() {
     let origin_url = format!("http://{addr}/bloqueada-dupla");
     let fallback_url_template = format!("http://{addr}/fallback-com-falha/{{url}}");
 
-    std::env::set_var("RESENHA_FALLBACK_URL", fallback_url_template);
-    std::env::set_var("RESENHA_ENABLE_FALLBACK", "true");
+    let _env = ScopedEnv::new(&[
+        ("no_proxy", "127.0.0.1,localhost"),
+        ("NO_PROXY", "127.0.0.1,localhost"),
+        ("RESENHA_FALLBACK_URL", &fallback_url_template),
+        ("RESENHA_ENABLE_FALLBACK", "true"),
+    ]);
 
     let result = resenha::fetcher::fetch_html(&origin_url).await;
     assert!(
