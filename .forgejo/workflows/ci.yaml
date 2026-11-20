@@ -45,6 +45,7 @@ jobs:
       - name: "CCCP Quality Audit"
         run: |
           if command -v cccp >/dev/null 2>&1; then
+            cccp hook -i || true
             cccp check --strict
           fi
 

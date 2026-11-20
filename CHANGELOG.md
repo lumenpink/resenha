@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remoção de campo `permissions:` incompatível com Forgejo Actions (closes #13).
 
 ### Fixed
+- **ci:** atualizar KOLLONTAI-018 com bypass de CI e instalar hooks na esteira (closes #21).
 - Configuração de `[profile.release]` com LTO e strip, e linking estático `+crt-static` para musl libc (closes #11).
 - Desenvelopamento de `<div>` externas e tratamento de URLs com parênteses (closes #7).
 - Inlining autônomo de imagens em base64 na leitura web e tela 404/502 tipográfica (closes #8).
