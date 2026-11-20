@@ -6,7 +6,7 @@
 * **Categoria:** 🌐 IndieWeb / ✂ Editorial
 * **Linguagem:** Rust (Edição 2021)
 * **Licença:** [GPL-3.0](./LICENSE)
-* **Governança:** Norma [GOST](https://codeberg.org/lumenpink/gost) v1.5.0 (Perfil Lumen)
+* **Governança:** Norma [GOST](.gost/GOST.md) v3.0.0 (Perfil Kollontai 2.1.0 / Lilya 2.1.0)
 
 ---
 
@@ -41,6 +41,13 @@ Gerenciado estritamente pelas diretrizes **GOST DD-TDD** e pela ferramenta **CCC
 cccp check --strict
 ```
 
-## 📄 Licença
+## 📄 Licença & Matriz Modular
 
-Distribuído sob a licença [GPL-3.0](./LICENSE).
+Em conformidade com a norma técnica [GOST v3.0.0](.gost/GOST.md):
+
+* **Código-Fonte e Binário CLI (`src/`):** Licenciados sob a [GPL-3.0](./LICENSE).
+* **Identidade Visual e Emblema:** Licenciados sob a [Creative Commons Atribuição-SemDerivações 4.0 Internacional (CC-BY-ND 4.0)](LICENSE-LOGO).
+
+---
+
+Feito com amor travesti por [Lumen Pink](https://lumen.pink).

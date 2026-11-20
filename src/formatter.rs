@@ -198,7 +198,7 @@ pub fn render_home_page() -> &'static str {
             </form>
         </div>
         <div class="footer-note">
-            <span>2LP // A Banca &bull; soberania da leitura</span>
+            <span>2LP // A Banca &bull; autonomia da leitura</span>
         </div>
     </div>
 </body>
@@ -511,7 +511,7 @@ pub fn render_reading_page(
     let mut rendered_body = markdown_to_html(body_md);
 
     // Na visualização web, substituir referências relativas "attachments/..." por dados inline base64
-    // Isso torna a página soberana, autônoma e evita que o navegador tente requisitar /attachments/...
+    // Isso torna a página autônoma, autônoma e evita que o navegador tente requisitar /attachments/...
     for asset in &article.assets {
         let needle = format!("attachments/{}", asset.filename);
         let replacement = if !asset.data_base64.is_empty() {

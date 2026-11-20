@@ -4,7 +4,7 @@ set -eo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKFLOW="${ROOT_DIR}/.forgejo/workflows/ci.yaml"
 
-echo "=== [TEST] Auditoria do Workflow de CD Soberano (resenha) ==="
+echo "=== [TEST] Auditoria do Workflow de CD Autônomo (resenha) ==="
 
 check_not_present() {
     local pattern="$1"
@@ -72,4 +72,4 @@ if [ $FAILED -ne 0 ]; then
     exit 1
 fi
 
-echo "✔ [GREEN TEST] Auditoria aprovada: CD soberano e saneamento validados."
+echo "✔ [GREEN TEST] Auditoria aprovada: CD autônomo e saneamento validados."

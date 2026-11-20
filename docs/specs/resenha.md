@@ -14,7 +14,7 @@
 
 A web comercial converteu o ato de ler em uma trincheira contra popups invasivos, banners de newsletter, vídeos em autoplay, rastreadores comportamentais e excesso de scripts. Ferramentas legadas como o Readability foram descontinuadas, e alternativas self-hosted tradicionais frequentemente exigem bancos relacionais pesados, dependências inchadas e navegadores headless que consomem gigabytes de memória.
 
-O **`resenha`** é um microserviço e ferramenta de linha de comando (CLI) em Rust puro, estritamente containerizado, com consumo residente inferior a 15 MB de RAM. Seu propósito é extrair o conteúdo essencial de qualquer artigo ou notícia da web aberta e devolvê-lo na forma de **Markdown estrito**, legível e soberano, com metadados estruturados e preservação explícita do **link da fonte original**.
+O **`resenha`** é um microserviço e ferramenta de linha de comando (CLI) em Rust puro, estritamente containerizado, com consumo residente inferior a 15 MB de RAM. Seu propósito é extrair o conteúdo essencial de qualquer artigo ou notícia da web aberta e devolvê-lo na forma de **Markdown estrito**, legível e autônomo, com metadados estruturados e preservação explícita do **link da fonte original**.
 
 O `resenha` foi projetado para operar com dupla vocação:
 1. **Independente (Standalone)**: Como utilitário CLI ou serviço HTTP que entrega Markdown ou JSON estruturado.

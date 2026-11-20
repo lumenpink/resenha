@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "slug": "resenha",
+  "title": "Resenha",
+  "site_type": "app",
+  "tagline": "Subsistema de Extração, Sanitização e Destilação Tipográfica na Borda",
+  "summary": "Microserviço e utilitário CLI em Rust para extração e sanitização de páginas web em Markdown estrito.",
+  "abstract": "O resenha é o braço editorial da Banca: extrai o miolo textual de páginas web abertas e entrega em Markdown com frontmatter estruturado.",
+  "tags": [
+    "resenha",
+    "markdown",
+    "scraper",
+    "reader",
+    "rust",
+    "cli"
+  ],
+  "icon": "✂",
+  "theme": {
+    "bg_color": "#181825",
+    "accent_color": "#89b4fa"
+  }
+}

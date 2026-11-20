@@ -1,7 +1,7 @@
 # Spec: Páginas de Erro Tipográficas e Imagens Embutidas na Leitura Web
 
 - **Ticket**: #8
-- **Tipo**: Fix / Usabilidade e Soberania
+- **Tipo**: Fix / Usabilidade e autonomia
 - **Data**: 2026-10-20
 
 ## 1. Problema e Motivação
@@ -11,7 +11,7 @@
 
 ## 2. Requisitos e Contratos
 
-### 2.1. Imagens Embutidas Soberanas (Inlined Base64)
+### 2.1. Imagens Embutidas autônomas (Inlined Base64)
 - Na função `formatter::render_reading_page`:
   - As referências a `attachments/{filename}` geradas a partir do Markdown devem ser convertidas em data URIs base64 (`data:{mime_type};base64,{data_base64}`) correspondentes aos assets contidos em `article.assets`.
   - Caso o asset não esteja disponível em base64, deve preservar a URL remota original de fallback.
