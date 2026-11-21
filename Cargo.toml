@@ -1,6 +1,6 @@
 [package]
 name = "resenha"
-version = "0.1.0-dev.65+20261120.22bf204"
+version = "0.1.0-dev.66+20261120.1143909"
 edition = "2021"
 authors = ["Lumen Pink <hi@lumen.pink>"]
 description = "Subsistema de Extração, Sanitização e Destilação Tipográfica na Borda"
